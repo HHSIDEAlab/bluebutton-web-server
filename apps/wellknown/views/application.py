@@ -30,7 +30,8 @@ def label_slug_excluded(value):
 
 
 class ApplicationListFilter(FilterSet):
-    label = BaseInFilter(field_name="applicationlabel__slug", validators=[label_slug_exists, label_slug_excluded])
+    label = BaseInFilter(field_name="applicationlabel__slug", distinct=True,
+                         validators=[label_slug_exists, label_slug_excluded])
 
     class Meta:
         model = Application
@@ -53,7 +54,7 @@ class ApplicationListView(ListAPIView):
 
     def get_queryset(self):
         queryset = Application.objects.exclude(active=False).exclude(
-            applicationlabel__slug__in=settings.APP_LIST_EXCLUDE).distinct().order_by('name')
+            applicationlabel__slug__in=settings.APP_LIST_EXCLUDE).order_by('name')
         return queryset
 
 
