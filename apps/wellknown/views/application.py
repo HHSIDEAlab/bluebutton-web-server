@@ -53,7 +53,7 @@ class ApplicationListView(ListAPIView):
 
     def get_queryset(self):
         queryset = Application.objects.exclude(active=False).exclude(
-            applicationlabel__slug__in=settings.APP_LIST_EXCLUDE).order_by('name')
+            applicationlabel__slug__in=settings.APP_LIST_EXCLUDE).distinct().order_by('name')
         return queryset
 
 
