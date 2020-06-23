@@ -134,7 +134,8 @@ class Crosswalk(models.Model):
 
     @user_mbi_hash.setter
     def user_mbi_hash(self, value):
-        if self.pk:
+        # Can update ONLY if previous hash value was None/Null.
+        if self.pk and self._user_mbi_hash is not None:
             raise ValidationError("this value cannot be modified.")
         if self._user_mbi_hash:
             raise ValidationError("this value cannot be modified.")
