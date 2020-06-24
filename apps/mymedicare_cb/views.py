@@ -70,6 +70,8 @@ def authenticate(request):
     sls_mbi = user_info.get("mbi", "").upper()
     sls_mbi_format_valid, sls_mbi_format_msg = is_mbi_format_valid(sls_mbi)
     sls_mbi_format_synthetic = is_mbi_format_synthetic(sls_mbi)
+    if sls_mbi == "":
+        sls_mbi = None
 
     # If MBI returned from SLS is blank, set to None for hash logging
     if sls_mbi == "":
