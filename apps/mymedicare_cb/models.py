@@ -1,3 +1,4 @@
+import json
 import logging
 from django.db import models, transaction
 from django.contrib.auth.models import User, Group
@@ -15,21 +16,22 @@ def log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type
         used in get_and_update_user()
         mesg = Description text.
     '''
-    logger.info({"type": "mymedicare_cb:get_and_update_user",
-                 "fhir_id": fhir_id,
-                 "mbi_hash": mbi_hash,
-                 "hicn_hash": hicn_hash,
-                 "hash_lookup_type": hash_lookup_type,
-                 "crosswalk":
-                     {
-                         "id": user.crosswalk.id,
-                         "user_hicn_hash": user.crosswalk.user_hicn_hash,
-                         "user_mbi_hash": user.crosswalk.user_mbi_hash,
-                         "fhir_id": user.crosswalk.fhir_id,
-                         "user_id_type": user.crosswalk.user_id_type,
-                     },
-                 "mesg": mesg,
-                 })
+    logger.info(json.dumps({
+        "type": "mymedicare_cb:get_and_update_user",
+        "fhir_id": fhir_id,
+        "mbi_hash": mbi_hash,
+        "hicn_hash": hicn_hash,
+        "hash_lookup_type": hash_lookup_type,
+        "crosswalk":
+            {
+                "id": user.crosswalk.id,
+                "user_hicn_hash": user.crosswalk.user_hicn_hash,
+                "user_mbi_hash": user.crosswalk.user_mbi_hash,
+                "fhir_id": user.crosswalk.fhir_id,
+                "user_id_type": user.crosswalk.user_id_type,
+            },
+            "mesg": mesg,
+    }))
 
 
 def log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg):
@@ -38,14 +40,14 @@ def log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_ha
         used in create_beneficiary_record()
         mesg = Description text.
     '''
-    logger.info({
+    logger.info(json.dumps({
         "type": "mymedicare_cb:create_beneficiary_record",
         "username": username,
         "fhir_id": fhir_id,
         "user_mbi_hash": user_mbi_hash,
         "user_hicn_hash": user_hicn_hash,
         "mesg": mesg,
-    })
+    }))
 
 
 def get_and_update_user(user_info):
@@ -161,10 +163,10 @@ def create_beneficiary_record(username=None,
     if user_hicn_hash is None:
         mesg = "user_hicn_hash can not be None"
         log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
-
-    if len(user_hicn_hash) != 64:
-        mesg = "incorrect user HICN hash format"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+    else:
+        if len(user_hicn_hash) != 64:
+            mesg = "incorrect user HICN hash format"
+            log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
 
     if user_mbi_hash is not None:
         if len(user_mbi_hash) != 64:
