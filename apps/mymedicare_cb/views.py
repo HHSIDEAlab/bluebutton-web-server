@@ -15,6 +15,7 @@ from .models import (
     get_and_update_user,
 )
 from .validators import is_mbi_format_valid, is_mbi_format_synthetic
+import json
 import logging
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import NotFound
@@ -70,14 +71,12 @@ def authenticate(request):
     sls_mbi = user_info.get("mbi", "").upper()
     sls_mbi_format_valid, sls_mbi_format_msg = is_mbi_format_valid(sls_mbi)
     sls_mbi_format_synthetic = is_mbi_format_synthetic(sls_mbi)
-    if sls_mbi == "":
-        sls_mbi = None
 
     # If MBI returned from SLS is blank, set to None for hash logging
     if sls_mbi == "":
         sls_mbi = None
 
-    authenticate_logger.info({
+    authenticate_logger.info(json.dumps({
         "type": "Authentication:start",
         "sub": user_info["sub"],
         "sls_mbi_format_valid": sls_mbi_format_valid,
@@ -85,11 +84,11 @@ def authenticate(request):
         "sls_mbi_format_synthetic": sls_mbi_format_synthetic,
         "sls_hicn_hash": hash_hicn(user_info['hicn']),
         "sls_mbi_hash": hash_mbi(sls_mbi),
-    })
+    }))
 
     user = get_and_update_user(user_info)
 
-    authenticate_logger.info({
+    authenticate_logger.info(json.dumps({
         "type": "Authentication:success",
         "sub": user_info["sub"],
         "user": {
@@ -103,7 +102,7 @@ def authenticate(request):
                 "user_id_type": user.crosswalk.user_id_type,
             },
         },
-    })
+    }))
     request.user = user
 
 

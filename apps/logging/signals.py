@@ -1,3 +1,4 @@
+import json
 import logging
 from oauth2_provider.signals import app_authorized
 from django.db.models.signals import (
@@ -28,7 +29,7 @@ def handle_token_created(sender, request, token, **kwargs):
 
 
 def handle_app_authorized(sender, request, user, application, **kwargs):
-    token_logger.info({
+    token_logger.info(json.dumps({
         "type": "Authorization",
         "user": {
             "id": user.id,
@@ -45,7 +46,7 @@ def handle_app_authorized(sender, request, user, application, **kwargs):
             "id": application.id,
             "name": application.name,
         },
-    })
+    }))
 
 
 def token_removed(sender, instance=None, **kwargs):

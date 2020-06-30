@@ -1,3 +1,4 @@
+import json
 import requests
 import logging
 from rest_framework import exceptions
@@ -14,13 +15,13 @@ def log_fhir_id_not_found(mbi_hash, hicn_hash,
         Logging for "FhirIDNotFound" type
         used in match_backend_patient_identifier()
     '''
-    logger.info({
+    logger.info(json.dumps({
         "type": "FhirIDNotFound",
         "mbi_hash": mbi_hash,
         "hicn_hash": hicn_hash,
         "hash_lookup_type": hash_lookup_type,
         "hash_lookup_mesg": hash_lookup_mesg,
-    })
+    }))
 
 
 def log_fhir_id_is_found(fhir_id, mbi_hash, hicn_hash,
@@ -29,14 +30,14 @@ def log_fhir_id_is_found(fhir_id, mbi_hash, hicn_hash,
         Logging for "FhirIDFound" type
         used in match_backend_patient_identifier()
     '''
-    logger.info({
+    logger.info(json.dumps({
         "type": "FhirIDFound",
         "fhir_id": fhir_id,
         "mbi_hash": mbi_hash,
         "hicn_hash": hicn_hash,
         "hash_lookup_type": hash_lookup_type,
         "hash_lookup_mesg": hash_lookup_mesg,
-    })
+    }))
 
 
 def match_backend_patient_identifier(mbi_hash, hicn_hash):
