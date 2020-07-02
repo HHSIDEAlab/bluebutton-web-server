@@ -9,7 +9,6 @@ class BeneficiaryLoginTest(TestCase):
     def setUp(self):
         Group.objects.create(name='BlueButton')
 
-
     def test_create_beneficiary_record(self):
         args = {
             "username": "00112233-4455-6677-8899-aabbccddeeff",
@@ -72,9 +71,6 @@ class BeneficiaryLoginTest(TestCase):
         self.assertEqual(bene.crosswalk.user_id_type, args["user_id_type"])
         self.assertEqual(bene.crosswalk.fhir_id, args["fhir_id"])
         self.assertEqual(bene.userprofile.user_type, 'BEN')
-
-
-
 
     def test_fail_create_beneficiary_record(self):
         cases = {
