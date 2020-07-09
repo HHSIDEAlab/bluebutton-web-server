@@ -9,8 +9,8 @@ from ..bluebutton.utils import (FhirServerAuth,
 logger = logging.getLogger('hhs_server.%s' % __name__)
 
 
-def log_fhir_id_not_found(mbi_hash, hicn_hash,
-                          hash_lookup_type, hash_lookup_mesg):
+def log_fhir_id_not_matched(mbi_hash, hicn_hash,
+                            hash_lookup_type, hash_lookup_mesg):
     '''
         Logging for "FhirIDNotFound" type
         used in match_backend_patient_identifier()
@@ -24,8 +24,8 @@ def log_fhir_id_not_found(mbi_hash, hicn_hash,
     }))
 
 
-def log_fhir_id_is_found(fhir_id, mbi_hash, hicn_hash,
-                         hash_lookup_type, hash_lookup_mesg):
+def log_fhir_id_matched(fhir_id, mbi_hash, hicn_hash,
+                        hash_lookup_type, hash_lookup_mesg):
     '''
         Logging for "FhirIDFound" type
         used in match_backend_patient_identifier()
@@ -100,14 +100,16 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
             fhir_id = backend_data['entry'][0]['resource']['id']
             # Log for FhirIDFound type
             hash_lookup_mesg = "FOUND beneficiary via mbi_hash"
-            log_fhir_id_is_found(fhir_id, mbi_hash, hicn_hash,
-                                 hash_lookup_type, hash_lookup_mesg)
+            log_fhir_id_matched(fhir_id, mbi_hash, hicn_hash,
+                                hash_lookup_type, hash_lookup_mesg)
             return fhir_id, backend_data, hash_lookup_type
 
     # Log for mbi FhirIDNotFound type
-    hash_lookup_mesg = "FHIR ID NOT FOUND for MBI hash lookup"
-    log_fhir_id_not_found(mbi_hash, hicn_hash,
-                          hash_lookup_type, hash_lookup_mesg)
+    if hash_lookup_mesg is None:
+        # Set mesg if it was not set previously for duplicates.
+        hash_lookup_mesg = "FHIR ID NOT FOUND for MBI hash lookup"
+    log_fhir_id_not_matched(mbi_hash, hicn_hash,
+                            hash_lookup_type, hash_lookup_mesg)
 
     # 2. If there is a mbi lookup issue, the hicn_hash is used next.
     hash_lookup_type = "H"
@@ -126,29 +128,29 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
     if backend_data.get('total', 0) > 1:
         # Log for FhirIDNotFound type
         hash_lookup_mesg = "Duplicate beneficiaries found in Patient resource bundle total"
-        log_fhir_id_not_found(mbi_hash, hicn_hash,
-                              hash_lookup_type, hash_lookup_mesg)
+        log_fhir_id_not_matched(mbi_hash, hicn_hash,
+                                hash_lookup_type, hash_lookup_mesg)
         # Don't return a 404 because retrying later will not fix this.
         raise UpstreamServerException(hash_lookup_mesg)
 
     if 'entry' in backend_data and len(backend_data['entry']) > 1:
         # Log for FhirIDNotFound type
         hash_lookup_mesg = "Duplicate beneficiaries found in Patient resource bundle entry"
-        log_fhir_id_not_found(mbi_hash, hicn_hash,
-                              hash_lookup_type, hash_lookup_mesg)
+        log_fhir_id_not_matched(mbi_hash, hicn_hash,
+                                hash_lookup_type, hash_lookup_mesg)
         raise UpstreamServerException(hash_lookup_mesg)
 
     if 'entry' in backend_data and backend_data['total'] == 1:
         fhir_id = backend_data['entry'][0]['resource']['id']
         # Log for FhirIDFound type
         hash_lookup_mesg = "FOUND beneficiary via hicn_hash"
-        log_fhir_id_is_found(fhir_id, mbi_hash, hicn_hash,
-                             hash_lookup_type, hash_lookup_mesg)
+        log_fhir_id_matched(fhir_id, mbi_hash, hicn_hash,
+                            hash_lookup_type, hash_lookup_mesg)
         return fhir_id, backend_data, hash_lookup_type
 
     # Log for FhirIDNotFound type
     hash_lookup_mesg = "FHIR ID NOT FOUND for both MBI and HICN hash lookups"
-    log_fhir_id_not_found(mbi_hash, hicn_hash,
-                          hash_lookup_type, hash_lookup_mesg)
+    log_fhir_id_not_matched(mbi_hash, hicn_hash,
+                            hash_lookup_type, hash_lookup_mesg)
 
     raise exceptions.NotFound("The requested Beneficiary has no entry, however this may change")
