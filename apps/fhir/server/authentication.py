@@ -1,6 +1,7 @@
 import json
 import requests
 import logging
+from django.conf import settings
 from rest_framework import exceptions
 from ..bluebutton.exceptions import UpstreamServerException
 from ..bluebutton.utils import (FhirServerAuth,
@@ -68,12 +69,14 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
     hash_lookup_mesg = None
 
     if mbi_hash is not None:
-        # URL for patient ID by mbi_hash.
+        # URL for patient ID search by mbi_hash.
         url = get_resourcerouter().fhir_url + \
-            "Patient/?identifier=https%3A%2F%2Fbluebutton.cms.gov" + \
-            "%2Fresources%2Fidentifier%2Fmbi-hash%7C" + \
+            "Patient/?identifier=" + \
+            settings.FHIR_SEARCH_PARAM_IDENTIFIER_MBIHASH + "%7C" + \
             mbi_hash + \
-            "&_format=application%2Fjson%2Bfhir"
+            "&_format=" + \
+            settings.FHIR_PARAM_FORMAT
+
         response = requests.get(url, cert=certs, verify=False)
         response.raise_for_status()
         backend_data = response.json()
@@ -115,11 +118,14 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
     hash_lookup_type = "H"
     hash_lookup_mesg = None
 
-    # URL for patient ID by hicn_hash.
+    # URL for patient ID search by hicn_hash.
     url = get_resourcerouter().fhir_url + \
-        "Patient/?identifier=http%3A%2F%2Fbluebutton.cms.hhs.gov%2Fidentifier%23hicnHash%7C" + \
+        "Patient/?identifier=" + \
+        settings.FHIR_SEARCH_PARAM_IDENTIFIER_HICNHASH + "%7C" + \
         hicn_hash + \
-        "&_format=json"
+        "&_format=" + \
+        settings.FHIR_PARAM_FORMAT
+
     response = requests.get(url, cert=certs, verify=False)
     response.raise_for_status()
     backend_data = response.json()
