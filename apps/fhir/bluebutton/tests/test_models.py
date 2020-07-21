@@ -73,7 +73,7 @@ class TestModels(BaseApiTest):
         with self.assertRaises(ValidationError):
             cw.user_mbi_hash = "239e178537ed3bc486e6a7195a47a82a2cd6f46e911660fe9775f6e0dd3f1130"
 
-    def test_muatble_user_mbi_hash_when_null(self):
+    def test_mutable_user_mbi_hash_when_null(self):
         '''
             Test replacing Null mbi_hash value in crosswalk.
             Unlike hich_hash, this case is OK if past value was Null/None.
