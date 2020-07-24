@@ -47,10 +47,11 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
     using an MBI or HICN hash.
 
     Summary:
-        1. mbi_hash is used for the initial lookup.
-        2. If there is a mbi lookup issue, the hicn_hash is used next.
-        3. If there is a hicn lookup issue, exceptions are raised.
-        4. A NotFound exception is raised if no match was found.
+        1. mbi_hash is used for the initial lookup.May be empty/None from SLS.
+        2. If there is an mbi_hash lookup issue, exceptions are raised.
+        3. If the mbi_hash lookup is not found, the hicn_hash is used next.
+        4. If there is a hicn_hash lookup issue, exceptions are raised.
+        5. A NotFound exception is raised if no match was found.
 
     Returns:
         fhir_id = Matched patient identifier.
@@ -64,7 +65,7 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
     auth_state = FhirServerAuth(None)
     certs = (auth_state['cert_file'], auth_state['key_file'])
 
-    # 1. mbi_hash is used for the initial lookup.
+    # 1. mbi_hash is used for the initial lookup. May be empty/None from auth provider.
     hash_lookup_type = "M"
     hash_lookup_mesg = None
 
@@ -81,9 +82,13 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
         response.raise_for_status()
         backend_data = response.json()
 
+        # 2. If there is an mbi_hash lookup issue, exceptions are raised.
+
         # Check resource bundle total > 1
         if backend_data.get('total', 0) > 1:
             hash_lookup_mesg = "Duplicate beneficiaries found in Patient resource bundle total"
+            # Don't return a 404 because retrying later will not fix this.
+            raise UpstreamServerException(hash_lookup_mesg)
 
         # Check number of resource entries > 1
         if (
@@ -92,6 +97,7 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
             and hash_lookup_mesg is not None
         ):
             hash_lookup_mesg = "Duplicate beneficiaries found in Patient resource bundle entry"
+            raise UpstreamServerException(hash_lookup_mesg)
 
         # If resource bundle has an entry and total == 1, return match results
         if (
@@ -107,14 +113,14 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
                                 hash_lookup_type, hash_lookup_mesg)
             return fhir_id, backend_data, hash_lookup_type
 
-    # Log for mbi FhirIDNotFound type
+    # Log for mbi_hash FhirIDNotFound type
     if hash_lookup_mesg is None:
         # Set mesg if it was not set previously for duplicates.
         hash_lookup_mesg = "FHIR ID NOT FOUND for MBI hash lookup"
     log_fhir_id_not_matched(mbi_hash, hicn_hash,
                             hash_lookup_type, hash_lookup_mesg)
 
-    # 2. If there is a mbi lookup issue, the hicn_hash is used next.
+    # 3. If the mbi_hash lookup is not found, the hicn_hash is used next.
     hash_lookup_type = "H"
     hash_lookup_mesg = None
 
@@ -130,7 +136,7 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
     response.raise_for_status()
     backend_data = response.json()
 
-    # 3. If there is a hicn lookup issue, exceptions are raised.
+    # 4. If there is a hicn_hash lookup issue, exceptions are raised.
     if backend_data.get('total', 0) > 1:
         # Log for FhirIDNotFound type
         hash_lookup_mesg = "Duplicate beneficiaries found in Patient resource bundle total"
@@ -154,9 +160,8 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
                             hash_lookup_type, hash_lookup_mesg)
         return fhir_id, backend_data, hash_lookup_type
 
-    # Log for FhirIDNotFound type
+    # 5. A NotFound exception is raised if no match was found.
     hash_lookup_mesg = "FHIR ID NOT FOUND for both MBI and HICN hash lookups"
     log_fhir_id_not_matched(mbi_hash, hicn_hash,
                             hash_lookup_type, hash_lookup_mesg)
-
     raise exceptions.NotFound("The requested Beneficiary has no entry, however this may change")
