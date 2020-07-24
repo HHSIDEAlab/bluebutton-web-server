@@ -141,16 +141,6 @@ class Crosswalk(models.Model):
             raise ValidationError("this value cannot be modified.")
         self._user_mbi_hash = value
 
-    def set_hicn(self, hicn):
-        if self.pk:
-            raise ValidationError("this value cannot be modified.")
-        self.user_hicn_hash = hash_hicn(hicn)
-
-    def set_mbi(self, mbi):
-        if self.pk:
-            raise ValidationError("this value cannot be modified.")
-        self.user_mbi_hash = hash_mbi(mbi)
-
     def get_fhir_resource_url(self, resource_type):
         # Return the fhir server url
         full_url = self.fhir_source.fhir_url
