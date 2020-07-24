@@ -1,3 +1,4 @@
+import uuid
 from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
 from apps.test import BaseApiTest
@@ -6,6 +7,30 @@ from ..models import Crosswalk, check_crosswalks
 
 
 class TestModels(BaseApiTest):
+
+    def test_crosswalk_setter_properties(self):
+        '''
+          Test the Crosswalk setters
+          and that they can not be modified once set.
+        '''
+        user = self._create_user('john', 'password',
+                                 first_name='John',
+                                 last_name='Smith',
+                                 email='john@smith.net',
+                                 fhir_id="-20000000000001",
+                                 user_hicn_hash=self.test_hicn_hash,
+                                 user_mbi_hash=self.test_mbi_hash)
+
+        cw = Crosswalk.objects.get(user=user)
+
+        with self.assertRaisesRegexp(ValidationError, "this value cannot be modified."):
+            cw.fhir_id = "-20000000000002"
+
+        with self.assertRaisesRegexp(ValidationError, "this value cannot be modified."):
+            cw.user_hicn_hash = uuid.uuid4()
+
+        with self.assertRaisesRegexp(ValidationError, "this value cannot be modified."):
+            cw.user_mbi_hash = uuid.uuid4()
 
     def test_require_fhir_id(self):
         with self.assertRaisesRegexp(IntegrityError, "[NOT NULL constraint|null value in column].*fhir_id.*"):
