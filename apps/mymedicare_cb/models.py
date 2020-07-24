@@ -86,16 +86,15 @@ def get_and_update_user(user_info):
         # Does an existing user and crosswalk exist for SLS username?
         user = User.objects.get(username=subject)
 
-        # Log pre asserts.
+        # TODO: Replace asserts with exception handling.
         if user.crosswalk.user_hicn_hash != hicn_hash:
             mesg = "Found user's hicn did not match"
             log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+        assert user.crosswalk.user_hicn_hash == hicn_hash, "Found user's hicn did not match"
 
         if user.crosswalk.fhir_id != fhir_id:
             mesg = "Found user's fhir_id did not match"
             log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
-
-        assert user.crosswalk.user_hicn_hash == hicn_hash, "Found user's hicn did not match"
         assert user.crosswalk.fhir_id == fhir_id, "Found user's fhir_id did not match"
 
         if user.crosswalk.user_mbi_hash is not None:
@@ -151,14 +150,16 @@ def create_beneficiary_record(username=None,
                               email="",
                               user_id_type="H"):
 
-    # Pre logging for asserts.
+    # Validate argument values. TODO: Replace asserts with exception handling.
     if username is None:
         mesg = "username can not be None"
         log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+    assert username is not None
 
     if username == "":
         mesg = "username can not be an empty string"
         log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+    assert username != ""
 
     if user_hicn_hash is None:
         mesg = "user_hicn_hash can not be None"
@@ -167,28 +168,24 @@ def create_beneficiary_record(username=None,
         if len(user_hicn_hash) != 64:
             mesg = "incorrect user HICN hash format"
             log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+    assert user_hicn_hash is not None
+    assert len(user_hicn_hash) == 64, "incorrect user HICN hash format"
 
+    # If mbi_hash is not NULL, perform length check.
     if user_mbi_hash is not None:
         if len(user_mbi_hash) != 64:
             mesg = "incorrect user MBI hash format"
             log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        assert len(user_mbi_hash) == 64, "incorrect user MBI hash format"
 
     if fhir_id is None:
         mesg = "fhir_id can not be None"
         log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+    assert fhir_id is not None
 
     if fhir_id == "":
         mesg = "fhir_id can not be an empty string"
         log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
-
-    assert username is not None
-    assert username != ""
-    assert user_hicn_hash is not None
-    assert len(user_hicn_hash) == 64, "incorrect user HICN hash format"
-    # If mbi_hash is not NULL, perform length check.
-    if user_mbi_hash is not None:
-        assert len(user_mbi_hash) == 64, "incorrect user MBI hash format"
-    assert fhir_id is not None
     assert fhir_id != ""
 
     if User.objects.filter(username=username).exists():
