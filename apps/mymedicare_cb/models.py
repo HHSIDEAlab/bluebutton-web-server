@@ -5,7 +5,7 @@ from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 from apps.accounts.models import UserProfile
 from apps.fhir.server.authentication import match_backend_patient_identifier
-from apps.fhir.bluebutton.models import Crosswalk, hash_hicn, hash_mbi
+from apps.fhir.bluebutton.models import Crosswalk
 
 logger = logging.getLogger('hhs_server.%s' % __name__)
 
@@ -50,35 +50,27 @@ def log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_ha
     }))
 
 
-def get_and_update_user(user_info):
+def get_and_update_user(subject, mbi_hash, hicn_hash, first_name, last_name, email):
     """
     Find or create the user associated
     with the identity information from the ID provider.
 
     Args:
-        user_info: Identity response from the userinfo endpoint of the ID provider.
+        Identity parameters passed in from ID provider.
 
+        subject = ID provider's sub or username
+        mbi_hash = Previously hashed mbi
+        hicn_hash = Previously hashed hicn
+        first_name
+        last_name
+        email
     Returns:
         A User
-
     Raises:
         KeyError: If an expected key is missing from user_info.
         KeyError: If response from fhir server is malformed.
         AssertionError: If a user is matched but not all identifiers match.
     """
-    subject = user_info['sub']
-    hicn = user_info['hicn']
-    # Convert SLS's mbi to UPPER case.
-    mbi = user_info['mbi'].upper()
-
-    # If mbi is empty set to None
-    if mbi == "":
-        mbi = None
-
-    # Create hashed values.
-    hicn_hash = hash_hicn(hicn)
-    mbi_hash = hash_mbi(mbi)
-
     # Match a patient identifier via the backend FHIR server
     fhir_id, backend_data, hash_lookup_type = match_backend_patient_identifier(mbi_hash=mbi_hash, hicn_hash=hicn_hash)
 
@@ -121,10 +113,6 @@ def get_and_update_user(user_info):
         return user
     except User.DoesNotExist:
         pass
-
-    first_name = user_info.get('given_name', "")
-    last_name = user_info.get('family_name', "")
-    email = user_info.get('email', "")
 
     user = create_beneficiary_record(username=subject,
                                      user_hicn_hash=hicn_hash,

@@ -67,8 +67,16 @@ def authenticate(request):
     # Get the userinfo response object
     user_info = response.json()
 
-    # Add MBI validation info for logging.
+    # Set identity values from userinfo response.
+    sls_subject = user_info.get("sub", None)
+    sls_hicn = user_info.get("hicn", "")
+    #     Convert SLS's mbi to UPPER case.
     sls_mbi = user_info.get("mbi", "").upper()
+    sls_first_name = user_info.get('given_name', "")
+    sls_last_name = user_info.get('family_name', "")
+    sls_email = user_info.get('email', "")
+
+    # Set MBI validation info for logging and validation.
     sls_mbi_format_valid, sls_mbi_format_msg = is_mbi_format_valid(sls_mbi)
     sls_mbi_format_synthetic = is_mbi_format_synthetic(sls_mbi)
 
@@ -76,21 +84,37 @@ def authenticate(request):
     if sls_mbi == "":
         sls_mbi = None
 
+    # Hash values once here for performance.
+    sls_hicn_hash = hash_hicn(sls_hicn)
+    sls_mbi_hash = hash_mbi(sls_mbi)
+
     authenticate_logger.info(json.dumps({
         "type": "Authentication:start",
-        "sub": user_info["sub"],
+        "sub": sls_subject,
         "sls_mbi_format_valid": sls_mbi_format_valid,
         "sls_mbi_format_msg": sls_mbi_format_msg,
         "sls_mbi_format_synthetic": sls_mbi_format_synthetic,
-        "sls_hicn_hash": hash_hicn(user_info['hicn']),
-        "sls_mbi_hash": hash_mbi(sls_mbi),
+        "sls_hicn_hash": sls_hicn_hash,
+        "sls_mbi_hash": sls_mbi_hash,
     }))
 
-    user = get_and_update_user(user_info)
+    """
+     Validate sls identity information values.
+       1. Missing sub? sub value?
+       2. hicn and mbi value?
+       3. hicn_hash and mbi_hash value?
+    """
+
+    user = get_and_update_user(subject=sls_subject,
+                               mbi_hash=sls_mbi_hash,
+                               hicn_hash=sls_hicn_hash,
+                               first_name=sls_first_name,
+                               last_name=sls_last_name,
+                               email=sls_email)
 
     authenticate_logger.info(json.dumps({
         "type": "Authentication:success",
-        "sub": user_info["sub"],
+        "sub": sls_subject,
         "user": {
             "id": user.id,
             "username": user.username,
