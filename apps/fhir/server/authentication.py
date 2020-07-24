@@ -59,7 +59,7 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
         hash_lookup_type = The type used for the successful lookup (M or H).
 
     Raises:
-        UpstreamServerException: If hicn_hash search found duplicates.
+        UpstreamServerException: If hicn_hash or mbi_hash search found duplicates.
         NotFound: If both searches did not match a fhir_id.
     '''
     auth_state = FhirServerAuth(None)
@@ -78,6 +78,7 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
             "&_format=" + \
             settings.FHIR_PARAM_FORMAT
 
+        # TODO: Should work with verify=True
         response = requests.get(url, cert=certs, verify=False)
         response.raise_for_status()
         backend_data = response.json()
@@ -87,6 +88,8 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
         # Check resource bundle total > 1
         if backend_data.get('total', 0) > 1:
             hash_lookup_mesg = "Duplicate beneficiaries found in Patient resource bundle total"
+            log_fhir_id_not_matched(mbi_hash, hicn_hash,
+                                    hash_lookup_type, hash_lookup_mesg)
             # Don't return a 404 because retrying later will not fix this.
             raise UpstreamServerException(hash_lookup_mesg)
 
@@ -94,9 +97,10 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
         if (
             'entry' in backend_data
             and len(backend_data['entry']) > 1
-            and hash_lookup_mesg is not None
         ):
             hash_lookup_mesg = "Duplicate beneficiaries found in Patient resource bundle entry"
+            log_fhir_id_not_matched(mbi_hash, hicn_hash,
+                                    hash_lookup_type, hash_lookup_mesg)
             raise UpstreamServerException(hash_lookup_mesg)
 
         # If resource bundle has an entry and total == 1, return match results
@@ -104,7 +108,6 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
             'entry' in backend_data
             and backend_data['total'] == 1
             and len(backend_data['entry']) == 1
-            and hash_lookup_mesg is None
         ):
             fhir_id = backend_data['entry'][0]['resource']['id']
             # Log for FhirIDFound type

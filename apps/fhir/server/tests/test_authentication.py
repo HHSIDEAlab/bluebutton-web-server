@@ -156,17 +156,13 @@ class TestAuthentication(BaseApiTest):
         '''
             Testing responses: HICN = success
                                MBI = duplicates
-            Expecting: Match via HICN / hash_lockup_type="H"
-            Note: When duplicates are found for MBI it is considered a failed match
-                  and HICN is used for the secondary match method.
+            Expecting: UpstreamServerException exception raised
         '''
         with HTTMock(self.fhir_match_hicn_success_mock, self.fhir_match_mbi_duplicates_mock):
-            fhir_id, backend_data, hash_lookup_type = match_backend_patient_identifier(
-                mbi_hash=self.test_mbi_hash,
-                hicn_hash=self.test_hicn_hash)
-            self.assertEqual(backend_data, responses['success']['content'])
-            self.assertEqual(fhir_id, "-20000000002346")
-            self.assertEqual(hash_lookup_type, "H")
+            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*"):
+                fhir_id, backend_data, hash_lookup_type = match_backend_patient_identifier(
+                    mbi_hash=self.test_mbi_hash,
+                    hicn_hash=self.test_hicn_hash)
 
     def test_match_backend_patient_identifier_duplicates_both(self):
         '''
@@ -222,16 +218,12 @@ class TestAuthentication(BaseApiTest):
         '''
             Testing responses: HICN = success
                                MBI = lying
-            Expecting: Match via HICN / hash_lockup_type="H"
+            Expecting: UpstreamServerException exception raised
             Note: lying means response total=1, but there are multiple
                   Patient resources in the response.
-            Note: When duplicates are found for MBI it is considered a failed match
-                  and HICN is used for the secondary match method.
         '''
         with HTTMock(self.fhir_match_hicn_success_mock, self.fhir_match_mbi_lying_mock):
-            fhir_id, backend_data, hash_lookup_type = match_backend_patient_identifier(
-                mbi_hash=self.test_mbi_hash,
-                hicn_hash=self.test_hicn_hash)
-            self.assertEqual(backend_data, responses['success']['content'])
-            self.assertEqual(fhir_id, "-20000000002346")
-            self.assertEqual(hash_lookup_type, "H")
+            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*bundle entry"):
+                fhir_id, backend_data, hash_lookup_type = match_backend_patient_identifier(
+                    mbi_hash=self.test_mbi_hash,
+                    hicn_hash=self.test_hicn_hash)
