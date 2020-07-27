@@ -1,30 +1,32 @@
-from django.conf import settings
-from django.http import HttpResponseRedirect
-from django.urls import reverse
+import json
+import logging
+import random
 import requests
+import urllib.request as urllib_request
+
+from apps.dot_ext.models import Approval
+from apps.fhir.bluebutton.exceptions import UpstreamServerException
+from apps.fhir.bluebutton.models import hash_hicn, hash_mbi
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from django.template.response import TemplateResponse
-import urllib.request as urllib_request
+from django.urls import reverse
+from django.views.decorators.cache import never_cache
+from rest_framework.exceptions import NotFound
 from urllib.parse import (
     urlsplit,
     urlunsplit,
 )
-import random
+
+from .authorization import OAuth2Config
 from .models import (
     AnonUserState,
     get_and_update_user,
 )
-from .validators import is_mbi_format_valid, is_mbi_format_synthetic
-import json
-import logging
-from django.core.exceptions import ValidationError
-from rest_framework.exceptions import NotFound
-from django.views.decorators.cache import never_cache
-from .authorization import OAuth2Config
 from .signals import response_hook
-from apps.dot_ext.models import Approval
-from apps.fhir.bluebutton.exceptions import UpstreamServerException
-from apps.fhir.bluebutton.models import hash_hicn, hash_mbi
+from .validators import is_mbi_format_valid, is_mbi_format_synthetic
 
 
 logger = logging.getLogger('hhs_server.%s' % __name__)
@@ -105,6 +107,7 @@ def authenticate(request):
        3. hicn_hash and mbi_hash value?
     """
 
+    # Find or create the user associated with the identity information from SLS.
     user = get_and_update_user(subject=sls_subject,
                                mbi_hash=sls_mbi_hash,
                                hicn_hash=sls_hicn_hash,

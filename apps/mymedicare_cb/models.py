@@ -1,4 +1,3 @@
-import json
 import logging
 from django.db import models, transaction
 from django.contrib.auth.models import User, Group
@@ -6,48 +5,9 @@ from django.core.exceptions import ValidationError
 from apps.accounts.models import UserProfile
 from apps.fhir.server.authentication import match_backend_patient_identifier
 from apps.fhir.bluebutton.models import Crosswalk
+from .loggers import log_get_and_update_user, log_create_beneficiary_record
 
 logger = logging.getLogger('hhs_server.%s' % __name__)
-
-
-def log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg):
-    '''
-        Logging for info or issue
-        used in get_and_update_user()
-        mesg = Description text.
-    '''
-    logger.info(json.dumps({
-        "type": "mymedicare_cb:get_and_update_user",
-        "fhir_id": fhir_id,
-        "mbi_hash": mbi_hash,
-        "hicn_hash": hicn_hash,
-        "hash_lookup_type": hash_lookup_type,
-        "crosswalk":
-            {
-                "id": user.crosswalk.id,
-                "user_hicn_hash": user.crosswalk.user_hicn_hash,
-                "user_mbi_hash": user.crosswalk.user_mbi_hash,
-                "fhir_id": user.crosswalk.fhir_id,
-                "user_id_type": user.crosswalk.user_id_type,
-            },
-            "mesg": mesg,
-    }))
-
-
-def log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg):
-    '''
-        Logging for info or issue
-        used in create_beneficiary_record()
-        mesg = Description text.
-    '''
-    logger.info(json.dumps({
-        "type": "mymedicare_cb:create_beneficiary_record",
-        "username": username,
-        "fhir_id": fhir_id,
-        "user_mbi_hash": user_mbi_hash,
-        "user_hicn_hash": user_hicn_hash,
-        "mesg": mesg,
-    }))
 
 
 def get_and_update_user(subject, mbi_hash, hicn_hash, first_name, last_name, email):
@@ -81,35 +41,35 @@ def get_and_update_user(subject, mbi_hash, hicn_hash, first_name, last_name, ema
         # TODO: Replace asserts with exception handling.
         if user.crosswalk.user_hicn_hash != hicn_hash:
             mesg = "Found user's hicn did not match"
-            log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+            log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
         assert user.crosswalk.user_hicn_hash == hicn_hash, "Found user's hicn did not match"
 
         if user.crosswalk.fhir_id != fhir_id:
             mesg = "Found user's fhir_id did not match"
-            log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+            log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
         assert user.crosswalk.fhir_id == fhir_id, "Found user's fhir_id did not match"
 
         if user.crosswalk.user_mbi_hash is not None:
             if user.crosswalk.user_mbi_hash != mbi_hash:
                 mesg = "Found user's mbi did not match"
-                log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+                log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
             assert user.crosswalk.user_mbi_hash == mbi_hash, "Found user's mbi did not match"
         else:
             # Previously stored value was None/Null, so update just the mbi hash.
             mesg = "UPDATE mbi_hash since previous value was NULL"
-            log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+            log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
             user.crosswalk.user_mbi_hash = mbi_hash
             user.crosswalk.save()
 
         # Update hash type used for lookup, if it has changed from last match.
         if user.crosswalk.user_id_type != hash_lookup_type:
             mesg = "UPDATE user_id_type as it has changed from the previous lookup value"
-            log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+            log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
             user.crosswalk.user_id_type = hash_lookup_type
             user.crosswalk.save()
 
         mesg = "RETURN existing beneficiary record"
-        log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+        log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
         return user
     except User.DoesNotExist:
         pass
@@ -124,7 +84,7 @@ def get_and_update_user(subject, mbi_hash, hicn_hash, first_name, last_name, ema
                                      user_id_type=hash_lookup_type)
 
     mesg = "CREATE beneficiary record"
-    log_get_and_update_user(user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+    log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
     return user
 
 
@@ -141,21 +101,21 @@ def create_beneficiary_record(username=None,
     # Validate argument values. TODO: Replace asserts with exception handling.
     if username is None:
         mesg = "username can not be None"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
     assert username is not None
 
     if username == "":
         mesg = "username can not be an empty string"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
     assert username != ""
 
     if user_hicn_hash is None:
         mesg = "user_hicn_hash can not be None"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
     else:
         if len(user_hicn_hash) != 64:
             mesg = "incorrect user HICN hash format"
-            log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+            log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
     assert user_hicn_hash is not None
     assert len(user_hicn_hash) == 64, "incorrect user HICN hash format"
 
@@ -163,39 +123,39 @@ def create_beneficiary_record(username=None,
     if user_mbi_hash is not None:
         if len(user_mbi_hash) != 64:
             mesg = "incorrect user MBI hash format"
-            log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+            log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
         assert len(user_mbi_hash) == 64, "incorrect user MBI hash format"
 
     if fhir_id is None:
         mesg = "fhir_id can not be None"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
     assert fhir_id is not None
 
     if fhir_id == "":
         mesg = "fhir_id can not be an empty string"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
     assert fhir_id != ""
 
     if User.objects.filter(username=username).exists():
         mesg = "user already exists"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
         raise ValidationError(mesg, username)
 
     if Crosswalk.objects.filter(_user_id_hash=user_hicn_hash).exists():
         mesg = "user_hicn_hash already exists"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
         raise ValidationError("user_hicn_hash already exists", user_hicn_hash)
 
     # If mbi_hash is not NULL, perform check for duplicate
     if user_mbi_hash is not None:
         if Crosswalk.objects.filter(_user_mbi_hash=user_mbi_hash).exists():
             mesg = "user_mbi_hash already exists"
-            log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+            log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
             raise ValidationError("user_mbi_hash already exists", user_hicn_hash)
 
     if fhir_id and Crosswalk.objects.filter(_fhir_id=fhir_id).exists():
         mesg = "fhir_id already exists"
-        log_create_beneficiary_record(username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
+        log_create_beneficiary_record(logger, username, fhir_id, user_mbi_hash, user_hicn_hash, mesg)
         raise ValidationError("fhir_id already exists", fhir_id)
 
     with transaction.atomic():
