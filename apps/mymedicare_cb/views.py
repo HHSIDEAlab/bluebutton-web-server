@@ -1,4 +1,3 @@
-import json
 import logging
 import random
 import requests
@@ -21,6 +20,7 @@ from urllib.parse import (
 )
 
 from .authorization import OAuth2Config
+from .loggers import (log_authenticate_start, log_authenticate_success)
 from .models import (
     AnonUserState,
     get_and_update_user,
@@ -37,6 +37,9 @@ authenticate_logger = logging.getLogger('audit.authenticate.sls')
 def authenticate(request):
     code = request.GET.get('code')
     if not code:
+        # Log for info
+        log_authenticate_start(authenticate_logger, "FAIL",
+                               "The code parameter is required")
         raise ValidationError('The code parameter is required')
 
     sls_client = OAuth2Config()
@@ -45,6 +48,9 @@ def authenticate(request):
         sls_client.exchange(code)
     except requests.exceptions.HTTPError as e:
         logger.error("Token request response error {reason}".format(reason=e))
+        # Log also for info
+        log_authenticate_start(authenticate_logger, "FAIL",
+                               "Token request response error {reason}".format(reason=e))
         raise UpstreamServerException('An error occurred connecting to account.mymedicare.gov')
 
     userinfo_endpoint = getattr(
@@ -63,6 +69,9 @@ def authenticate(request):
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
         logger.error("User info request response error {reason}".format(reason=e))
+        # Log also for info
+        log_authenticate_start(authenticate_logger, "FAIL",
+                               "User info request response error {reason}".format(reason=e))
         raise UpstreamServerException(
             'An error occurred connecting to account.mymedicare.gov')
 
@@ -70,42 +79,75 @@ def authenticate(request):
     user_info = response.json()
 
     # Set identity values from userinfo response.
-    sls_subject = user_info.get("sub", None)
-    sls_hicn = user_info.get("hicn", "")
+    sls_subject = user_info.get("sub", None).strip()
+    sls_hicn = user_info.get("hicn", "").strip()
     #     Convert SLS's mbi to UPPER case.
-    sls_mbi = user_info.get("mbi", "").upper()
+    sls_mbi = user_info.get("mbi", "").strip().upper()
     sls_first_name = user_info.get('given_name', "")
     sls_last_name = user_info.get('family_name', "")
     sls_email = user_info.get('email', "")
-
-    # Set MBI validation info for logging and validation.
-    sls_mbi_format_valid, sls_mbi_format_msg = is_mbi_format_valid(sls_mbi)
-    sls_mbi_format_synthetic = is_mbi_format_synthetic(sls_mbi)
 
     # If MBI returned from SLS is blank, set to None for hash logging
     if sls_mbi == "":
         sls_mbi = None
 
-    # Hash values once here for performance.
+    # Validate: sls_subject cannot be empty. TODO: Validate format too.
+    if sls_subject == "":
+        mesg = "User info sub cannot be empty"
+        log_authenticate_start(authenticate_logger, "FAIL", mesg)
+        raise UpstreamServerException(
+            "An error occurred validating identity information from provider." + mesg)
+
+    # Validate: sls_hicn cannot be empty.
+    if sls_hicn == "":
+        mesg = "User info HICN cannot be empty."
+        log_authenticate_start(authenticate_logger, "FAIL", mesg, sls_subject)
+        raise UpstreamServerException(
+            "An error occurred validating identity information from provider." + mesg)
+
+    # Set Hash values once here for performance and logging.
     sls_hicn_hash = hash_hicn(sls_hicn)
     sls_mbi_hash = hash_mbi(sls_mbi)
 
-    authenticate_logger.info(json.dumps({
-        "type": "Authentication:start",
-        "sub": sls_subject,
-        "sls_mbi_format_valid": sls_mbi_format_valid,
-        "sls_mbi_format_msg": sls_mbi_format_msg,
-        "sls_mbi_format_synthetic": sls_mbi_format_synthetic,
-        "sls_hicn_hash": sls_hicn_hash,
-        "sls_mbi_hash": sls_mbi_hash,
-    }))
+    # Validate: hicn_hash expected length = 64.
+    if len(sls_hicn_hash) != 64:
+        mesg = "Incorrect HICN hash format length of " + str(len(sls_hicn_hash)) + " is != 64 ."
+        log_authenticate_start(authenticate_logger, "FAIL", mesg,
+                               sls_subject, None,
+                               None, None,
+                               sls_hicn_hash, sls_mbi_hash)
+        raise UpstreamServerException(
+            "An error occurred calculating the ID hash." + mesg)
 
-    """
-     Validate sls identity information values.
-       1. Missing sub? sub value?
-       2. hicn and mbi value?
-       3. hicn_hash and mbi_hash value?
-    """
+    # Validate: mbi_hash expected length = 64.
+    if len(sls_mbi_hash) != 64:
+        mesg = "Incorrect MBI hash format length of " + str(len(sls_mbi_hash)) + " is != 64 ."
+        log_authenticate_start(authenticate_logger, "FAIL", mesg,
+                               sls_subject, None,
+                               None, None,
+                               sls_hicn_hash, sls_mbi_hash)
+        raise UpstreamServerException(
+            "An error occurred calculating the ID hash." + mesg)
+
+    # Validate: sls_mbi format.
+    #    NOTE: mbi return from SLS can be empty/None (so can use hicn for matching later)
+    if sls_mbi is not None:
+        sls_mbi_format_valid, sls_mbi_format_msg = is_mbi_format_valid(sls_mbi)
+        sls_mbi_format_synthetic = is_mbi_format_synthetic(sls_mbi)
+
+        if not sls_mbi_format_valid:
+            mesg = "User info MBI format is not valid. "
+            log_authenticate_start(authenticate_logger, "FAIL", mesg,
+                                   sls_subject, sls_mbi_format_valid,
+                                   sls_mbi_format_msg, sls_mbi_format_synthetic,
+                                   sls_hicn_hash, sls_mbi_hash)
+            raise UpstreamServerException(
+                "An error occurred validating identity information from provider." + mesg + sls_mbi_format_msg)
+
+    # Log successful identity information gathered.
+    log_authenticate_start(authenticate_logger, "OK", None, sls_subject,
+                           sls_mbi_format_valid, sls_mbi_format_msg,
+                           sls_mbi_format_synthetic, sls_hicn_hash, sls_mbi_hash)
 
     # Find or create the user associated with the identity information from SLS.
     user = get_and_update_user(subject=sls_subject,
@@ -115,21 +157,10 @@ def authenticate(request):
                                last_name=sls_last_name,
                                email=sls_email)
 
-    authenticate_logger.info(json.dumps({
-        "type": "Authentication:success",
-        "sub": sls_subject,
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "crosswalk": {
-                "id": user.crosswalk.id,
-                "user_hicn_hash": user.crosswalk.user_hicn_hash,
-                "user_mbi_hash": user.crosswalk.user_mbi_hash,
-                "fhir_id": user.crosswalk.fhir_id,
-                "user_id_type": user.crosswalk.user_id_type,
-            },
-        },
-    }))
+    # Log successful authentication with beneficiary when we return back here.
+    log_authenticate_success(authenticate_logger, sls_subject, user)
+
+    # Update request user.
     request.user = user
 
 
