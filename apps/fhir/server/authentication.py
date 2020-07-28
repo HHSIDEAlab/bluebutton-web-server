@@ -25,7 +25,6 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
 
     Returns:
         fhir_id = Matched patient identifier.
-        backend_data = Passed thru to caller. Utilized in TestAuthentication.
         hash_lookup_type = The type used for the successful lookup (M or H).
 
     Raises:
@@ -84,7 +83,7 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
             hash_lookup_mesg = "FOUND beneficiary via mbi_hash"
             log_fhir_id_matched(logger, fhir_id, mbi_hash, hicn_hash,
                                 hash_lookup_type, hash_lookup_mesg)
-            return fhir_id, backend_data, hash_lookup_type
+            return fhir_id, hash_lookup_type
 
     # Log for mbi_hash FhirIDNotFound type
     if hash_lookup_mesg is None:
@@ -131,7 +130,7 @@ def match_backend_patient_identifier(mbi_hash, hicn_hash):
         hash_lookup_mesg = "FOUND beneficiary via hicn_hash"
         log_fhir_id_matched(logger, fhir_id, mbi_hash, hicn_hash,
                             hash_lookup_type, hash_lookup_mesg)
-        return fhir_id, backend_data, hash_lookup_type
+        return fhir_id, hash_lookup_type
 
     # 5. A NotFound exception is raised if no match was found.
     hash_lookup_mesg = "FHIR ID NOT FOUND for both MBI and HICN hash lookups"
