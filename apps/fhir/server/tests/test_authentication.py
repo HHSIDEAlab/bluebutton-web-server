@@ -3,7 +3,7 @@ from apps.test import BaseApiTest
 from httmock import HTTMock, urlmatch
 from requests.exceptions import HTTPError
 from rest_framework import exceptions
-from ..authentication import match_backend_patient_identifier
+from ..authentication import match_fhir_id
 from .responses import responses
 
 
@@ -62,46 +62,46 @@ class TestAuthentication(BaseApiTest):
     def fhir_match_mbi_lying_mock(self, url, request):
         return responses['lying']
 
-    def test_match_backend_patient_identifier_success(self):
+    def test_match_fhir_id_success(self):
         '''
             Testing responses: HICN = success
                                MBI = success
             Expecting: Match via MBI first / hash_lockup_type="M"
         '''
         with HTTMock(self.fhir_match_hicn_success_mock, self.fhir_match_mbi_success_mock):
-            fhir_id, hash_lookup_type = match_backend_patient_identifier(
+            fhir_id, hash_lookup_type = match_fhir_id(
                 mbi_hash=self.test_mbi_hash,
                 hicn_hash=self.test_hicn_hash)
             self.assertEqual(fhir_id, "-20000000002346")
             self.assertEqual(hash_lookup_type, "M")
 
-    def test_match_backend_patient_identifier_hicn_success(self):
+    def test_match_fhir_id_hicn_success(self):
         '''
             Testing responses: HICN = success
                                MBI = not_found
             Expecting: Match via HICN / hash_lockup_type="H"
         '''
         with HTTMock(self.fhir_match_hicn_success_mock, self.fhir_match_mbi_not_found_mock):
-            fhir_id, hash_lookup_type = match_backend_patient_identifier(
+            fhir_id, hash_lookup_type = match_fhir_id(
                 mbi_hash=self.test_mbi_hash,
                 hicn_hash=self.test_hicn_hash)
             self.assertEqual(fhir_id, "-20000000002346")
             self.assertEqual(hash_lookup_type, "H")
 
-    def test_match_backend_patient_identifier_mbi_success(self):
+    def test_match_fhir_id_mbi_success(self):
         '''
             Testing responses: HICN = not_found
                                MBI = success
             Expecting: Match via MBI / hash_lockup_type="M"
         '''
         with HTTMock(self.fhir_match_hicn_not_found_mock, self.fhir_match_mbi_success_mock):
-            fhir_id, hash_lookup_type = match_backend_patient_identifier(
+            fhir_id, hash_lookup_type = match_fhir_id(
                 mbi_hash=self.test_mbi_hash,
                 hicn_hash=self.test_hicn_hash)
             self.assertEqual(fhir_id, "-20000000002346")
             self.assertEqual(hash_lookup_type, "M")
 
-    def test_match_backend_patient_identifier_not_found(self):
+    def test_match_fhir_id_not_found(self):
         '''
             Testing responses: HICN = not_found
                                MBI = not_found
@@ -109,11 +109,11 @@ class TestAuthentication(BaseApiTest):
         '''
         with HTTMock(self.fhir_match_hicn_not_found_mock, self.fhir_match_mbi_not_found_mock):
             with self.assertRaises(exceptions.NotFound):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_server_hicn_error(self):
+    def test_match_fhir_id_server_hicn_error(self):
         '''
             Testing responses: HICN = error
                                MBI = not_found
@@ -121,11 +121,11 @@ class TestAuthentication(BaseApiTest):
         '''
         with HTTMock(self.fhir_match_hicn_error_mock, self.fhir_match_mbi_not_found_mock):
             with self.assertRaises(HTTPError):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_server_mbi_error(self):
+    def test_match_fhir_id_server_mbi_error(self):
         '''
             Testing responses: HICN = not_found
                                MBI = error
@@ -133,23 +133,23 @@ class TestAuthentication(BaseApiTest):
         '''
         with HTTMock(self.fhir_match_hicn_not_found_mock, self.fhir_match_mbi_error_mock):
             with self.assertRaises(HTTPError):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_duplicates_hicn(self):
+    def test_match_fhir_id_duplicates_hicn(self):
         '''
             Testing responses: HICN = duplicates
                                MBI = not_found
             Expecting: UpstreamServerException exception raised
         '''
         with HTTMock(self.fhir_match_hicn_duplicates_mock, self.fhir_match_mbi_not_found_mock):
-            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*total"):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*"):
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_duplicates_mbi(self):
+    def test_match_fhir_id_duplicates_mbi(self):
         '''
             Testing responses: HICN = success
                                MBI = duplicates
@@ -157,11 +157,11 @@ class TestAuthentication(BaseApiTest):
         '''
         with HTTMock(self.fhir_match_hicn_success_mock, self.fhir_match_mbi_duplicates_mock):
             with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*"):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_duplicates_both(self):
+    def test_match_fhir_id_duplicates_both(self):
         '''
             Testing responses: HICN = duplicates
                                MBI = duplicates
@@ -169,11 +169,11 @@ class TestAuthentication(BaseApiTest):
         '''
         with HTTMock(self.fhir_match_hicn_duplicates_mock, self.fhir_match_mbi_duplicates_mock):
             with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*"):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_malformed_hicn(self):
+    def test_match_fhir_id_malformed_hicn(self):
         '''
             Testing responses: HICN = malformed
                                MBI = not_found
@@ -181,11 +181,11 @@ class TestAuthentication(BaseApiTest):
         '''
         with HTTMock(self.fhir_match_hicn_malformed_mock, self.fhir_match_mbi_not_found_mock):
             with self.assertRaisesRegexp(KeyError, "id"):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_malformed_mbi(self):
+    def test_match_fhir_id_malformed_mbi(self):
         '''
             Testing responses: HICN = success
                                MBI = malformed
@@ -193,11 +193,11 @@ class TestAuthentication(BaseApiTest):
         '''
         with HTTMock(self.fhir_match_hicn_success_mock, self.fhir_match_mbi_malformed_mock):
             with self.assertRaisesRegexp(KeyError, "id"):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_lying_hicn(self):
+    def test_match_fhir_id_lying_hicn(self):
         '''
             Testing responses: HICN = lying
                                MBI = not_found
@@ -206,12 +206,12 @@ class TestAuthentication(BaseApiTest):
                   Patient resources in the response.
         '''
         with HTTMock(self.fhir_match_hicn_lying_mock, self.fhir_match_mbi_not_found_mock):
-            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*bundle entry"):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*"):
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)
 
-    def test_match_backend_patient_identifier_lying_mbi(self):
+    def test_match_fhir_id_lying_mbi(self):
         '''
             Testing responses: HICN = success
                                MBI = lying
@@ -220,7 +220,7 @@ class TestAuthentication(BaseApiTest):
                   Patient resources in the response.
         '''
         with HTTMock(self.fhir_match_hicn_success_mock, self.fhir_match_mbi_lying_mock):
-            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*bundle entry"):
-                fhir_id, hash_lookup_type = match_backend_patient_identifier(
+            with self.assertRaisesRegexp(UpstreamServerException, "^Duplicate.*"):
+                fhir_id, hash_lookup_type = match_fhir_id(
                     mbi_hash=self.test_mbi_hash,
                     hicn_hash=self.test_hicn_hash)

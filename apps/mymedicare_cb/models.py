@@ -3,7 +3,7 @@ from django.db import models, transaction
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 from apps.accounts.models import UserProfile
-from apps.fhir.server.authentication import match_backend_patient_identifier
+from apps.fhir.server.authentication import match_fhir_id
 from apps.fhir.bluebutton.models import Crosswalk
 from .loggers import log_get_and_update_user, log_create_beneficiary_record
 
@@ -32,7 +32,7 @@ def get_and_update_user(subject, mbi_hash, hicn_hash, first_name, last_name, ema
         AssertionError: If a user is matched but not all identifiers match.
     """
     # Match a patient identifier via the backend FHIR server
-    fhir_id, hash_lookup_type = match_backend_patient_identifier(mbi_hash=mbi_hash, hicn_hash=hicn_hash)
+    fhir_id, hash_lookup_type = match_fhir_id(mbi_hash=mbi_hash, hicn_hash=hicn_hash)
 
     try:
         # Does an existing user and crosswalk exist for SLS username?
