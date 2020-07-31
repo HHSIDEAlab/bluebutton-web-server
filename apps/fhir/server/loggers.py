@@ -18,7 +18,7 @@ def log_match_fhir_id(fhir_id, mbi_hash, hicn_hash,
     '''
     logger.info(json.dumps({
         "type": "fhir.server.authentication.match_fhir_id",
-        "fhir_id": mbi_hash,
+        "fhir_id": fhir_id,
         "mbi_hash": mbi_hash,
         "hicn_hash": hicn_hash,
         "match_found": match_found,

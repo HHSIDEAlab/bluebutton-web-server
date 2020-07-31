@@ -91,15 +91,16 @@ def match_fhir_id(mbi_hash, hicn_hash):
         NotFound: If both searches did not match a fhir_id.
     """
     # Perform primary lookup using MBI_HASH
-    fhir_id, err_mesg = search_fhir_id_by_identifier_mbi_hash(mbi_hash)
-    if fhir_id is not None:
-        log_match_fhir_id(fhir_id, mbi_hash, hicn_hash, True, "M",
-                          "FOUND beneficiary via mbi_hash")
-        return fhir_id, "M"
-    elif err_mesg is not None:
-        log_match_fhir_id(fhir_id, mbi_hash, hicn_hash, False, "M", err_mesg)
-        # Don't return a 404 because retrying later will not fix this.
-        raise UpstreamServerException(err_mesg)
+    if mbi_hash is not None:
+        fhir_id, err_mesg = search_fhir_id_by_identifier_mbi_hash(mbi_hash)
+        if fhir_id is not None:
+            log_match_fhir_id(fhir_id, mbi_hash, hicn_hash, True, "M",
+                              "FOUND beneficiary via mbi_hash")
+            return fhir_id, "M"
+        elif err_mesg is not None:
+            log_match_fhir_id(fhir_id, mbi_hash, hicn_hash, False, "M", err_mesg)
+            # Don't return a 404 because retrying later will not fix this.
+            raise UpstreamServerException(err_mesg)
 
     # Perform secondary lookup using HICN_HASH
     fhir_id, err_mesg = search_fhir_id_by_identifier_hicn_hash(hicn_hash)

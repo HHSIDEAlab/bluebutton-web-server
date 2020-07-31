@@ -109,40 +109,18 @@ def authenticate(request):
     sls_hicn_hash = hash_hicn(sls_hicn)
     sls_mbi_hash = hash_mbi(sls_mbi)
 
-    # Validate: hicn_hash expected length = 64.
-    if len(sls_hicn_hash) != 64:
-        mesg = "Incorrect HICN hash format length of " + str(len(sls_hicn_hash)) + " is != 64 ."
-        log_authenticate_start(authenticate_logger, "FAIL", mesg,
-                               sls_subject, None,
-                               None, None,
-                               sls_hicn_hash, sls_mbi_hash)
-        raise UpstreamServerException(
-            "An error occurred calculating the ID hash." + mesg)
-
-    # Validate: mbi_hash expected length = 64.
-    if len(sls_mbi_hash) != 64:
-        mesg = "Incorrect MBI hash format length of " + str(len(sls_mbi_hash)) + " is != 64 ."
-        log_authenticate_start(authenticate_logger, "FAIL", mesg,
-                               sls_subject, None,
-                               None, None,
-                               sls_hicn_hash, sls_mbi_hash)
-        raise UpstreamServerException(
-            "An error occurred calculating the ID hash." + mesg)
-
     # Validate: sls_mbi format.
     #    NOTE: mbi return from SLS can be empty/None (so can use hicn for matching later)
-    if sls_mbi is not None:
-        sls_mbi_format_valid, sls_mbi_format_msg = is_mbi_format_valid(sls_mbi)
-        sls_mbi_format_synthetic = is_mbi_format_synthetic(sls_mbi)
-
-        if not sls_mbi_format_valid:
-            mesg = "User info MBI format is not valid. "
-            log_authenticate_start(authenticate_logger, "FAIL", mesg,
-                                   sls_subject, sls_mbi_format_valid,
-                                   sls_mbi_format_msg, sls_mbi_format_synthetic,
-                                   sls_hicn_hash, sls_mbi_hash)
-            raise UpstreamServerException(
-                "An error occurred validating identity information from provider." + mesg + sls_mbi_format_msg)
+    sls_mbi_format_valid, sls_mbi_format_msg = is_mbi_format_valid(sls_mbi)
+    sls_mbi_format_synthetic = is_mbi_format_synthetic(sls_mbi)
+    if not sls_mbi_format_valid and sls_mbi is not None:
+        mesg = "User info MBI format is not valid. "
+        log_authenticate_start(authenticate_logger, "FAIL", mesg,
+                               sls_subject, sls_mbi_format_valid,
+                               sls_mbi_format_msg, sls_mbi_format_synthetic,
+                               sls_hicn_hash, sls_mbi_hash)
+        raise UpstreamServerException(
+            "An error occurred validating identity information from provider." + mesg + sls_mbi_format_msg)
 
     # Log successful identity information gathered.
     log_authenticate_start(authenticate_logger, "OK", None, sls_subject,

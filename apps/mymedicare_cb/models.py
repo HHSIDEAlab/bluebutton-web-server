@@ -55,11 +55,12 @@ def get_and_update_user(subject, mbi_hash, hicn_hash, first_name, last_name, ema
                 log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
             assert user.crosswalk.user_mbi_hash == mbi_hash, "Found user's mbi did not match"
         else:
-            # Previously stored value was None/Null, so update just the mbi hash.
-            mesg = "UPDATE mbi_hash since previous value was NULL"
-            log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
-            user.crosswalk.user_mbi_hash = mbi_hash
-            user.crosswalk.save()
+            # Previously stored value was None/Null and mbi_hash != None, update just the mbi hash.
+            if mbi_hash is not None:
+                mesg = "UPDATE mbi_hash since previous value was NULL"
+                log_get_and_update_user(logger, user, fhir_id, mbi_hash, hicn_hash, hash_lookup_type, mesg)
+                user.crosswalk.user_mbi_hash = mbi_hash
+                user.crosswalk.save()
 
         # Update hash type used for lookup, if it has changed from last match.
         if user.crosswalk.user_id_type != hash_lookup_type:
