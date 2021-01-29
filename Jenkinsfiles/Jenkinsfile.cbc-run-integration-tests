@@ -27,7 +27,8 @@ pipeline {
   environment {
     DJANGO_USER_ID_SALT = credentials("bb2-integration-tests-bfd-salt")
     DJANGO_USER_ID_ITERATIONS = credentials("bb2-integration-tests-bfd-iterations")
-    BRANCH = "${params.COMMIT_SHA}"
+    BRANCH = "${params.COMMIT_SHA == "" ? params.BRANCH : params.COMMIT_SHA}"
+    FHIR_URL = "${params.FHIR_URL}"
   }
 
   stages {
