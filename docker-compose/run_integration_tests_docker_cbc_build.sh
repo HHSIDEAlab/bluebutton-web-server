@@ -27,8 +27,6 @@ echo_msg "            FHIR_CERT_FILE: ${FHIR_CERT_FILE}"
 echo_msg "             FHIR_KEY_FILE: ${FHIR_KEY_FILE}"
 echo_msg
 
-exit 0
-
 # Clone from local repo if /app mount directory is found.
 if [ -d /app ]
 then
@@ -40,17 +38,17 @@ then
   echo_msg
 fi
 
-# Checkout commit hash or branch if set
-if [ "${BRANCH}" != "" ]
-then
-  echo_msg
-  echo_msg "- Checkout commit hash or branch from: BRANCH = ${BRANCH}"
-  git fetch origin "+refs/heads/master:refs/remotes/origin/master" "+refs/pull/*:refs/remotes/origin/pr/*"
-  git checkout "${BRANCH}"
-else
-  echo_msg
-  echo_msg "- Using currently checked out branch in local development."
-fi
+## Checkout commit hash or branch if set
+#if [ "${BRANCH}" != "" ]
+#then
+#  echo_msg
+#  echo_msg "- Checkout commit hash or branch from: BRANCH = ${BRANCH}"
+#  git fetch origin "+refs/heads/master:refs/remotes/origin/master" "+refs/pull/*:refs/remotes/origin/pr/*"
+#  git checkout "${BRANCH}"
+#else
+#  echo_msg
+#  echo_msg "- Using currently checked out branch in local development."
+#fi
 
 # Show git status.
 echo_msg
@@ -61,11 +59,11 @@ echo_msg
 echo_msg "- GET Python version info:"
 python --version
 
-# Setup Python virtual env.
-echo_msg
-echo_msg "- Setup Python virtual env:"
-python3 -m venv venv
-. venv/bin/activate
+## Setup Python virtual env.
+#echo_msg
+#echo_msg "- Setup Python virtual env:"
+#python3 -m venv venv
+#. venv/bin/activate
 
 # Install requirements.
 echo_msg
