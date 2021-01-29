@@ -38,8 +38,8 @@ pwd
 
 echo
 echo
-echo GIT STATUS:
-git status
+echo GIT SHOW CURRENT BRNACH:
+git branch --show-current
 
 exit 0
 

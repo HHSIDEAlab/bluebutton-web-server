@@ -35,6 +35,7 @@ pipeline {
     /*
     stage("Checkout BRANCH or COMMIT_SHA") {
       steps {
+        git branch: 'env.BRANCH'
       }
     }
     */
