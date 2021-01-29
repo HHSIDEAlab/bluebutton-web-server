@@ -29,6 +29,8 @@ pipeline {
     DJANGO_USER_ID_ITERATIONS = credentials("bb2-integration-tests-bfd-iterations")
     BRANCH = "${params.COMMIT_SHA == "" ? params.BRANCH : params.COMMIT_SHA}"
     FHIR_URL = "${params.FHIR_URL}"
+    FHIR_CERT_FILE = "./client_data_server_bluebutton_local_integration_tests_certificate.pem"
+    FHIR_KEY_FILE = "./client_data_server_bluebutton_local_integration_tests_private_key.pem"
   }
 
   stages {
