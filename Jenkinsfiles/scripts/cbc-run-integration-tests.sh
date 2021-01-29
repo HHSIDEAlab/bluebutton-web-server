@@ -31,6 +31,19 @@ echo_msg
 echo_msg "    KEY_FILE: ${KEY_FILE}" 
 echo_msg
 
+echo
+echo
+echo PWD:
+pwd
+
+echo
+echo
+echo LS:
+ls -ld *
+
+exit 0
+
+
 # Cloning the web server repo under ./code directory.
 echo_msg
 echo_msg "Clone the web server repo under the ./code directory:"
