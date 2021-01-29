@@ -47,8 +47,8 @@ pipeline {
           file(credentialsId: "bb2-integration-tests-bfd-cert", variable: 'cf'),
           file(credentialsId: "bb2-integration-tests-bfd-key", variable: 'kf')
         ]) {
-          writeFile file: "${env.DJANGO_FHIR_CERTSTORE}/ca.cert.pem', text: readFile(cf)
-          writeFile file: '${env.DJANGO_FHIR_CERTSTORE}/ca.key.nocrypt.pem', text: readFile(kf)
+          writeFile file: "${env.DJANGO_FHIR_CERTSTORE}/ca.cert.pem", text: readFile(cf)
+          writeFile file: "${env.DJANGO_FHIR_CERTSTORE}/ca.key.nocrypt.pem", text: readFile(kf)
           script {
             echo("Running integration tests...")
             sh """
