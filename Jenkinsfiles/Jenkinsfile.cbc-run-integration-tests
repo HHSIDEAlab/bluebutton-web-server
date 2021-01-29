@@ -6,11 +6,6 @@ pipeline {
     }
   }
 
-  environment {
-    DJANGO_USER_ID_SALT = credentials("bb2-integration-tests-bfd-salt")
-    DJANGO_USER_ID_ITERATIONS = credentials("bb2-integration-tests-bfd-iterations")
-  }
-
   parameters {
     string(
       name: "BRANCH",
@@ -29,7 +24,22 @@ pipeline {
     )
   }
 
+  environment {
+    DJANGO_USER_ID_SALT = credentials("bb2-integration-tests-bfd-salt")
+    DJANGO_USER_ID_ITERATIONS = credentials("bb2-integration-tests-bfd-iterations")
+    if (params.COMMIT_SHA != "") {
+      BRANCH=${params.COMMIT_SHA}
+    }
+  }
+
   stages {
+    /*
+    stage("Checkout BRANCH or COMMIT_SHA") {
+      steps {
+      }
+    }
+    */
+
     stage("Run integration tests") {
       steps {
         withCredentials([
@@ -38,22 +48,11 @@ pipeline {
         ]) {
           script {
             echo("Running integration tests...")
-
-            if (params.COMMIT_SHA != "") {
-              sh """
-                pwd
-                ls -ld *
-                BRANCH=${params.COMMIT_SHA} FHIR_URL=${params.FHIR_URL} CERT_FILE="${cf}" KEY_FILE="${kf}" ./Jenkinsfiles/scripts/cbc-run-integration-tests.sh
-              """
-            } else {
-              sh """
-                pwd
-                ls -ld *
-                BRANCH=${params.BRANCH} FHIR_URL=${params.FHIR_URL} CERT_FILE="${cf}" KEY_FILE="${kf}" ./Jenkinsfiles/scripts/cbc-run-integration-tests.sh
-              """
+            sh """
+              ./Jenkinsfiles/scripts/cbc-run-integration-tests.sh
+            """
             }
           }
-        }
       }
     }
   }

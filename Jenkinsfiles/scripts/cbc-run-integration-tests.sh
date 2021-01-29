@@ -38,8 +38,8 @@ pwd
 
 echo
 echo
-echo LS:
-ls -ld *
+echo GIT STATUS:
+git status
 
 exit 0
 
