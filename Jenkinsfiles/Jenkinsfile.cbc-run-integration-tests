@@ -43,8 +43,8 @@ pipeline {
     stage("Run integration tests") {
       steps {
         withCredentials([
-          file(credentialsId: "bb2-integration-tests-bfd-cert", variable: 'cf'),
-          file(credentialsId: "bb2-integration-tests-bfd-key", variable: 'kf')
+          file(credentialsId: "bb2-integration-tests-bfd-cert", variable: 'env.CERT_FILE'),
+          file(credentialsId: "bb2-integration-tests-bfd-key", variable: 'env.KEY_FILE')
         ]) {
           script {
             echo("Running integration tests...")

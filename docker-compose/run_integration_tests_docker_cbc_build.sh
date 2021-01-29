@@ -27,6 +27,7 @@ echo_msg "            FHIR_CERT_FILE: ${FHIR_CERT_FILE}"
 echo_msg "             FHIR_KEY_FILE: ${FHIR_KEY_FILE}"
 echo_msg
 
+exit 0
 
 # Clone from local repo if /app mount directory is found.
 if [ -d /app ]

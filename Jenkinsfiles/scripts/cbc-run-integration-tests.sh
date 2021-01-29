@@ -38,43 +38,29 @@ pwd
 
 echo
 echo
-echo GIT SHOW CURRENT BRNACH:
-git branch --show-current
+echo GIT STATUS:
+git status
 
-exit 0
+ls -ld "${DJANGO_FHIR_CERTSTORE}"/*
 
-
-# Cloning the web server repo under ./code directory.
-echo_msg
-echo_msg "Clone the web server repo under the ./code directory:"
-echo_msg
-git clone https://github.com/CMSgov/bluebutton-web-server.git code
-
-# Checkout commit hash or branch.
-echo_msg
-echo_msg "Checkout commit hash or branch from: branch = ${branch}"
-echo_msg
-cd code
-git fetch origin "+refs/heads/master:refs/remotes/origin/master" "+refs/pull/*:refs/remotes/origin/pr/*"
-git checkout "$branch"
-
-# Copy cert files to DJANGO_FHIR_CERTSTORE location
-export DJANGO_FHIR_CERTSTORE=./certstore/
-export FHIR_CERT_FILE="cert.pem"
-export FHIR_KEY_FILE="key.pem"
-echo_msg
-echo_msg "Copy CERT files in to DJANGO_FHIR_CERTSTORE: ${DJANGO_FHIR_CERTSTORE}"
-echo_msg
-echo_msg "   Copying cert file to FHIR_CERT_FILE: ${FHIR_CERT_FILE}"
-echo_msg "   Copying key file to  FHIR_KEY_FILE: ${FHIR_KEY_FILE}"
-echo_msg
-mkdir ${DJANGO_FHIR_CERTSTORE}
-# TODO: Fix this certstore path issue. Django is looking under ./certstore/./certstore/cert.pem
-mkdir ${DJANGO_FHIR_CERTSTORE}/certstore
-cp "${CERT_FILE}" "${DJANGO_FHIR_CERTSTORE}/certstore/${FHIR_CERT_FILE}"
-cp "${KEY_FILE}" "${DJANGO_FHIR_CERTSTORE}/certstore/${FHIR_KEY_FILE}"
-ls -ld "${DJANGO_FHIR_CERTSTORE}/certstore/cert.pem"
-ls -ld "${DJANGO_FHIR_CERTSTORE}/certstore/key.pem"
+## Copy cert files to DJANGO_FHIR_CERTSTORE location
+#export DJANGO_FHIR_CERTSTORE=./certstore/
+#export FHIR_CERT_FILE="cert.pem"
+#export FHIR_KEY_FILE="key.pem"
+#echo_msg
+#echo_msg "Copy CERT files in to DJANGO_FHIR_CERTSTORE: ${DJANGO_FHIR_CERTSTORE}"
+#echo_msg
+#echo_msg "   Copying cert file to FHIR_CERT_FILE: ${FHIR_CERT_FILE}"
+#echo_msg "   Copying key file to  FHIR_KEY_FILE: ${FHIR_KEY_FILE}"
+#echo_msg
+#mkdir ${DJANGO_FHIR_CERTSTORE}
+## TODO: Fix this certstore path issue. Django is looking under ./certstore/./certstore/cert.pem
+#mkdir ${DJANGO_FHIR_CERTSTORE}/certstore
+#cp "${CERT_FILE}" "${DJANGO_FHIR_CERTSTORE}/certstore/${FHIR_CERT_FILE}"
+#cp "${KEY_FILE}" "${DJANGO_FHIR_CERTSTORE}/certstore/${FHIR_KEY_FILE}"
+#ls -ld "${DJANGO_FHIR_CERTSTORE}/certstore/cert.pem"
+#ls -ld "${DJANGO_FHIR_CERTSTORE}/certstore/key.pem"
 
 # Call shared script to setup and run integration tests in a bb2-cbc-build container
+
 sh docker-compose/run_integration_tests_docker_cbc_build.sh
