@@ -29,10 +29,7 @@ pipeline {
     DJANGO_USER_ID_ITERATIONS = credentials("bb2-integration-tests-bfd-iterations")
     BRANCH = "${params.COMMIT_SHA == "" ? params.BRANCH : params.COMMIT_SHA}"
     FHIR_URL = "${params.FHIR_URL}"
-    /*
     DJANGO_FHIR_CERTSTORE = "./certstore/"
-    */
-    DJANGO_FHIR_CERTSTORE = "./"
   }
 
   stages {
