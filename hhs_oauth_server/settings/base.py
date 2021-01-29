@@ -1,3 +1,4 @@
+import sys
 import os
 import dj_database_url
 import socket
@@ -521,6 +522,8 @@ print("---")
 print("--- FHIR_SERVER:  ", FHIR_SERVER)
 print("---")
 print("---")
+
+sys.exit(0)
 
 '''
     FHIR URL search query parameters for backend /Patient resource
