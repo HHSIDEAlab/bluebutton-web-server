@@ -43,13 +43,13 @@ pipeline {
     stage("Run integration tests") {
       steps {
         withCredentials([
-          file(credentialsId: "bb2-integration-tests-bfd-cert", variable: 'env.CERT_FILE'),
-          file(credentialsId: "bb2-integration-tests-bfd-key", variable: 'env.KEY_FILE')
+          file(credentialsId: "bb2-integration-tests-bfd-cert", variable: 'cf'),
+          file(credentialsId: "bb2-integration-tests-bfd-key", variable: 'kf')
         ]) {
           script {
             echo("Running integration tests...")
             sh """
-              ./Jenkinsfiles/scripts/cbc-run-integration-tests.sh
+              CERT_FILE="${cf}" KEY_FILE="${kf}" ./docker-compose/run_integration_tests_docker_cbc_build.sh
             """
             }
           }

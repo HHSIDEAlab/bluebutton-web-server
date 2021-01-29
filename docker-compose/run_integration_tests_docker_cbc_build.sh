@@ -59,11 +59,11 @@ echo_msg
 echo_msg "- GET Python version info:"
 python --version
 
-## Setup Python virtual env.
-#echo_msg
-#echo_msg "- Setup Python virtual env:"
-#python3 -m venv venv
-#. venv/bin/activate
+# Setup Python virtual env.
+echo_msg
+echo_msg "- Setup Python virtual env:"
+python3 -m venv venv
+. venv/bin/activate
 
 # Install requirements.
 echo_msg
