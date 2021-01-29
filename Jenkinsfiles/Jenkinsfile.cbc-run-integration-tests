@@ -35,7 +35,7 @@ pipeline {
     /*
     stage("Checkout BRANCH or COMMIT_SHA") {
       steps {
-        git branch: 'env.BRANCH'
+        git branch: 'env.BRANCH', url: "https://github.com/CMSgov/bluebutton-web-server.git"
       }
     }
     */
